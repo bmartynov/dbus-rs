@@ -44,14 +44,23 @@ Defaults to 'RefClosure'."))
         .arg(clap::Arg::with_name("dbuscrate").long("dbuscrate").takes_value(true).value_name("dbus")
              .help("Name of dbus crate, defaults to 'dbus'."))
         .arg(clap::Arg::with_name("skipprefix").short("i").long("skipprefix").takes_value(true).value_name("PREFIX")
-             .help("If present, skips a specific prefix for interface names, e g 'org.freedesktop.DBus.'."))  
+             .help("If present, skips a specific prefix for interface names, e g 'org.freedesktop.DBus.'."))
+        .arg(clap::Arg::with_name("address").long("address").takes_value(true).value_name("address")
+            .help("Address of dbus daemon. e g 'unix:path=/var/run/user/1000/pulse/dbus-socket'"))
         .get_matches();
 
-    let s = 
+    let s =
     if let Some(dest) = matches.value_of("destination") {
         let path = matches.value_of("path").unwrap_or("/");
-        let bus = if matches.is_present("systembus") { dbus::BusType::System } else { dbus::BusType::Session };
-        let c = dbus::Connection::get_private(bus).unwrap();
+
+        let c =
+        if let Some(address) = matches.value_of("address") {
+            dbus::Connection::open_private(address).unwrap()
+        } else {
+            let bus = if matches.is_present("systembus") { dbus::BusType::System } else { dbus::BusType::Session };
+            dbus::Connection::get_private(bus).unwrap()
+        };
+
         let p = c.with_path(dest, path, 10000);
         p.introspect().unwrap()
     } else {
